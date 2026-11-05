@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>自测AVI刷题</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:system-ui}
+body{max-width:700px;margin:20px auto;padding:0 15px;background:#f5f7fa}
+.box{background:#fff;padding:20px;border-radius:12px;margin-bottom:15px;box-shadow:0 2px 8px #00000010}
+.question-title{font-size:18px;font-weight:500;margin-bottom:12px}
+.opt{display:block;padding:10px 14px;border:1px solid #ddd;border-radius:8px;margin:8px 0;cursor:pointer}
+.opt.active{border-color:#2563eb;background:#eff6ff}
+/*选项内图片样式，适配手机，不会撑爆页面*/
+.opt-img{max-width:120px;max-height:100px;margin-top:6px;border:1px solid #eee;border-radius:4px}
+.btn{padding:12px 24px;border:none;border-radius:8px;background:#2563eb;color:#fff;font-size:16px;cursor:pointer;margin:8px 4px}
+.wrong{border-left:4px solid #ef4444;padding:12px;border-radius:8px;margin:8px 0;background:#fff}
+.right{border-left:4px solid #22c55e}
+.analysis{margin-top:10px;color:#666;font-size:14px}
+#startBox,#resultBox{text-align:center;padding:40px 20px}
+.tip-text{font-size:20px;font-weight:bold;margin:12px 0}
+.tip-fail{color:#ef4444}
+.tip-pass{color:#22c55e}
+</style>
+</head>
+<body>
+<div id="startBox" class="box">
+  <h2>FQC AVI刷题</h2>
+  <p style="margin:16px 0">开始刷题，祝你答的全会，蒙的全对</p>
+  <br><br>
+  <button class="btn" onclick="startExam()">开始刷题</button>
+</div>
+<div id="examBox" style="display:none">
+  <div class="box">
+    <div id="qTitle" class="question-title"></div>
+    <div id="optWrap"></div>
+    <button class="btn" onclick="prev()">上一题</button>
+    <button class="btn" onclick="next()">下一题</button>
+  </div>
+  <div style="text-align:center;margin-top:10px">
+    <button class="btn" onclick="submitPaper()">交卷评分</button>
+  </div>
+</div>
+<div id="resultBox" class="box" style="display:none">
+  <h2>答题结果</h2>
+  <p id="scoreText"></p>
+  <div id="msgTip" class="tip-text"></div>
+  <div id="errorList"></div>
+  <button class="btn" onclick="resetAll()">重新刷题</button>
+</div>
+<script>
+// ==========题库==========
+const questions = [
+ {id:1,title:"百世威AVI的机台型号？（单选题）",type:"single",opts:["BSW160","CJ180","CJ160","BSW180"],ans:"B",analysis:"百世威AVI机台型号为CJ180"},
+{id:2,title:"百世威AVI机台绿灯闪烁代表机台处于什么状态？（单选题）",type:"single",opts:["报警","生产","等待生产","停机"],ans:"C",analysis:"绿灯闪烁代表机台处于等待生产状态"},
+{
+  id:3,
+  title:"下图中哪个是百世威AVI软件开启图标？（单选题）",
+  type:"single",
+  opts:[
+    {text:"",img:"https://picui.ogmua.cn/s1/2026/11/03/6ae9ddb160a81.webp"},
+    {text:"",img:"https://picui.ogmua.cn/s1/2026/11/04/6aeb2bec4b4da.webp"},
+    {text:"",img:"https://picui.ogmua.cn/s1/2026/11/04/6aeb2cfae2e1e.webp"},
+    {text:"",img:"https://picui.ogmua.cn/s1/2026/11/04/6aeb2d2e0a466.webp"}
+  ],
+  ans:"B",
+  analysis:"B选项图标是百世威AVI软件开启图标"
+},
+{id:4,title:"以下哪个快捷键可以切换出百世威AVI隐藏的操作界面？（单选题）",type:"single",opts:["Ctrl+V","Ctrl+Y","Ctrl+D","Ctrl+X"],ans:"D",analysis:"Ctrl+X可以切换出百世威AVI隐藏操作界面"},
+{id:5,title:"AVI机台正常生产过程中，机台报警应是哪种颜色的灯光闪烁？（单选题）",type:"single",opts:["红色","黄色","蓝色","绿色"],ans:"A",analysis:"红色灯光闪烁代表机台报警"},
+{id:6,title:"机台为了检验胶水，应加装（单选题）",type:"single",opts:["UW光","UV光","UN光","以上都行"],ans:"B",analysis:"检验胶水需要加装UV光"},
+{id:7,title:"百世威AVI定位原点时X/Y必须无限接近于（单选题）",type:"single",opts:["0","1","2","-1"],ans:"D",analysis:"定位原点时X/Y无限接近于-1"},
+{id:8,title:"百世威AVI制作缩略图时CJ180按照（）去制作缩略图。（单选题）",type:"single",opts:["6%","5%","4%","3%"],ans:"D",analysis:"CJ180制作缩略图按照3%制作"},
+{id:9,title:"AVI复判站显示：绿色：（）红色：（）黄色：（）黑色：（）（多选题）",type:"multi",opts:["检测不良品","检测良品","ORT取样","ET不良"],ans:"BACD",analysis:"绿色：检测良品（B）；红色：检测不良品（A）；黄色：ORT取样（C）；黑色：ET不良（D）"},
+{
+  id:10,
+  title:"遇到紧急情况时，需要按下以下哪个开关？（单选题）",
+  type:"single",
+  opts:[
+    {text:"A",img:"https://picui.ogmua.cn/s1/2026/11/04/6aeb31cbe26d1.webp"},
+    {text:"B",img:"https://picui.ogmua.cn/s1/2026/11/04/6aeb328b1bda5.webp"},
+    {text:"C",img:"https://picui.ogmua.cn/s1/2026/11/04/6aeb33523fa51.webp"},
+    {text:"以上都可以"}
+  ],
+  ans:"B",
+  analysis:"B为急停开关，紧急情况按下"
+},
+{id:11,title:"盐城目前SMT AVI的厂家有哪些？（单选题）",type:"single",opts:["辰岭","深视","百世威","以上都有"],ans:"D",analysis:"盐城SMT AVI厂家包含辰岭、深视、百世威"},
+{id:12,title:"AVI检测过后上传MES的类型是？（单选题）",type:"single",opts:["AVI-FQC","FQC-AVI","FQC10","FQC-10"],ans:"A",analysis:"AVI检测后上传MES类型为AVI-FQC"},
+  {id:13,title:"AVI上料机上料高度不可超过？（单选题）",type:"single",opts:["没有限制","不超过20盘","不可超过顶盘","参照WI"],ans:"C",analysis:"AVI上料机上料高度不可超过顶盘"},
+  {id:14,title:"AVI复判站连续出现3个相同不良缺陷时应该怎么做？（单选题）",type:"single",opts:["不理会直接往下做","正常往下做","立即停线反馈领班","反馈技术员"],ans:"C",analysis:"连续出现相同不良时，应立即停线反馈领班"},
+{
+  id:15,
+  title:"以下哪个图标是辰岭AVI的复判软件图标？（单选题）",
+  type:"single",
+  opts:[
+    {text:"",img:"https://picui.ogmua.cn/s1/2026/11/04/6aeb369f66097.webp"},
+    {text:"",img:"https://picui.ogmua.cn/s1/2026/11/04/6aeb36b771a08.webp"},
+    {text:"",img:"https://picui.ogmua.cn/s1/2026/11/03/6ae9ddb160a81.webp"},
+    {text:"",img:"https://picui.ogmua.cn/s1/2026/11/04/6aeb2cfae2e1e.webp"}
+  ],
+  ans:"B",
+  analysis:"B选项为辰岭AVI的复判软件图标"
+},
+  {id:16,title:"AVI数据不上传可以在以下哪个工位卡出来？（单选题）",type:"single",opts:["FQC10","ET","复判","包装"],ans:"A",analysis:"可以在FQC10卡出来"},
+{
+  id:17,
+  title:"以下哪个图标是深视AVI的复判软件图标？（单选题）",
+  type:"single",
+  opts:[
+    {text:"",img:"https://picui.ogmua.cn/s1/2026/11/04/6aeb3f445c774.webp"},
+    {text:"",img:"https://picui.ogmua.cn/s1/2026/11/04/6aeb3fd6c563c.webp"},
+    {text:"",img:"https://picui.ogmua.cn/s1/2026/11/04/6aeb401e58993.webp"},
+    {text:"",img:"https://picui.ogmua.cn/s1/2026/11/04/6aeb409c1c4e7.webp"}
+  ],
+  ans:"A",
+  analysis:"A选项为深视AVI的复判软件图标"
+},
+{id:18,title:"换线更换产品应选择以下哪个程序名？（单选题）",type:"single",opts:["YAA1522-AVI_B","JA11917_AVI-B","JA12719-AVI-B","根据WI选择程序"],ans:"D",analysis:"换线更换产品应根据WI选择程序"},
+{id:19,title:"AVI检测图片保存至少多长时间？（单选题）",type:"single",opts:["至少3个月","至少1个月","至少6个月","至少1年"],ans:"C",analysis:"AVI检测图片保存至少至少6个月"},
+{id:20,title:"AVI工作的气压力是多少？（单选题）",type:"single",opts:["0.2Mpa-0.3Mpa","0.1Mpa-0.2Mpa","0.4Mpa-0.6Mpa","0.6Mpa-0.8Mpa"],ans:"C",analysis:"AVI工作的气压力是0.4Mpa-0.6Mpa"},
+{id:21,title:"关于AVI-FQC复判站说法不正确的是？（多选题）",type:"multi",opts:["AVI-FQC站为了应付产出，人员可以不确认直接点Pass","AVI-FQC开班点检设备程序命名，设备轨道状态","更换产品时，随意调取程序测试","设备报警时，第一时间确认是否因缺料报警，及时上料恢复生产"],ans:"AC",analysis:"正确答案为A、C"},
+{id:22,title:"AVI-FQC复判站人员发现连续3片产品相同不良时，下列做法正确的是？（多选题）",type:"multi",opts:["复判人员仔细确认判定是真实不良，立刻停线报备领班。","为了产能不用理会，正常复判往下做。","复判人员点击NG按钮，并将不良品挑出放到不良品盘中，并报备领班处理。","复判人员点击NG按钮，无需挑出不良，直接留给盘检QC挑选，报废处理。"],ans:"AC",analysis:"正确答案为A、C"},
+{id:23,title:"AVI机台开机前需检查的项目有:（多选题）",type:"multi",opts:["电源插座是否插好","气管气压是否释放","机台内有无其它物品","排气管有无漏气/损坏","机台设备是否接地","各按钮工作是否正常"],ans:"ABCDEF",analysis:"正确答案为ABCDEF"},
+{id:24,title:"每班开班前需要点检以下哪些内容?（多选题）",type:"multi",opts:["样品板点检是否OK","无需动作接班直接开始检测","确认程式是否使用正确","产能数量清零","为了产能可以暂时先生产",],ans:"ACD",analysis:"正确答案为ACD"},
+{id:25,title:"辰岭AVI复判站显示报警翻盘机料仓无盘，以下操作不正确的是?（多选题）",type:"multi",opts:["立刻停机检查翻盘机上料仓是否还有盘子","拉出翻盘机的料仓，放入空镜像盘。点击开始按钮继续生产","直接关闭报警提示，不用理会直接生产","立刻统计技术员处理",],ans:"CD",analysis:"正确答案为CD"},
+{id:26,title:"百世威AVI出现报警二维码没有正确生成，以下做法正确的是?（多选题）",type:"multi",opts:["立刻停机检查底部扫码器，是否能够扫码到产品的二维码","确认产品在盘子中是否有翘起，影响扫码器正常扫码","可以暂时关闭生产，等板子做完在进行维修调整","处理不了报警时，立刻通知技术员到场维修",],ans:"ABD",analysis:"正确答案为ABD"},
+{id:27,title:"关于AVI检测机台以下解释正确的是?（多选题）",type:"multi",opts:["AVI中文意思自动视觉检测机，主要检测产品的外观不良","AVI可以检测产品的正面和反面的不良，Dock料号可以侧面检测E75元件","AVI检测机台不可以检测产品的功能不良，产品的功能不能需要ET设备测试","AVI检测机台检测产品结束后，需要上传检测信息，保留检测的图片便于查询取证",],ans:"ABCD",analysis:"正确答案为ABCD"},
+{id:28,title:"AVI机台如果没有定期保养的话，将会产生什么后果?（多选题）",type:"multi",opts:["机台平台铺满灰尘","产品测试时灰尘落入造成误报","设备丝杆运动异响","机台地脚不平，导致机台晃动",],ans:"ABC",analysis:"正确答案为ABC"},
+{id:29,title:"以下不良缺陷AVI不能检测的是？（多选题）",type:"multi",opts:["柔板脱层","漏弯折","柔板漏铜","柔板损坏",],ans:"AB",analysis:"正确答案为AB"},
+{id:30,title:"百世威AVI调取程序后，以下操作需要点击的是？（多选题）",type:"multi",opts:["在线编辑","在线模式","生成路径","终端连接",],ans:"BCD",analysis:"正确答案为BCD"},
+{id:31,title:"以下哪些会引起真空报警,导致盘子无法吸取（多选题）",type:"multi",opts:["吸附位置tray盘损坏","吸附位置镂空","吸嘴未安装好","tray盘未到感应位置",],ans:"ABCD",analysis:"正确答案为ABCD"},
+
+];
+let pool = [];
+let current = 0;
+let userAnswer = {};
+
+// 随机打乱数组
+function shuffle(arr){
+  let a = [...arr];
+  for(let i=a.length-1;i>0;i--){
+    let j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+
+function startExam(){
+  // 全部题目，打乱，不再截取
+  pool = shuffle(questions);
+  current = 0;
+  userAnswer = {};
+  document.getElementById('startBox').style.display='none';
+  document.getElementById('examBox').style.display='block';
+  document.getElementById('resultBox').style.display='none';
+  renderQ();
+}
+
+function renderQ(){
+  const q = pool[current];
+  document.getElementById('qTitle').innerText = `【${current+1}/${pool.length}】${q.title}`;
+  let html = '';
+  //简答题
+  if(q.type === "essay"){
+      html += `<div style="margin:8px 0;color:#2563eb">简答题，请交卷后查看参考答案</div>`;
+      document.getElementById('optWrap').innerHTML = html;
+      return;
+  }
+  q.opts.forEach((item,i)=>{
+    let label = String.fromCharCode(65+i);
+    let sel = userAnswer[current]?.includes(label) ? 'active' : '';
+    let optInner = '';
+    // 判断选项是对象（带图片）还是普通字符串
+    if(typeof item === 'object' && item!==null){
+      optInner += `${label}. ${item.text}`;
+      // 如果有图片地址就渲染img标签
+      if(item.img){
+        optInner += `<br><img class="opt-img" src="${item.img}" alt="${label}选项图片">`;
+      }
+    }else{
+      optInner += `${label}. ${item}`;
+    }
+    html += `<label class="opt ${sel}" onclick="selectOpt(${current},'${label}','${q.type}')">${optInner}</label>`
+  })
+  document.getElementById('optWrap').innerHTML = html;
+}
+
+function selectOpt(idx,label,type){
+  if(type==='single' || type === 'judge' || type === 'fill'){
+    userAnswer[idx] = [label];
+  }else{
+    if(!userAnswer[idx]) userAnswer[idx]=[];
+    let arr = userAnswer[idx];
+    if(arr.includes(label)){
+      arr = arr.filter(x=>x!==label);
+    }else{
+      arr.push(label);
+    }
+    userAnswer[idx] = arr;
+  }
+  renderQ();
+}
+
+function prev(){
+  if(current>0) {current--;renderQ();}
+}
+
+function next(){
+  if(current < pool.length-1) {current++;renderQ();}
+}
+
+function submitPaper(){
+  let score = 0;
+  const perScore = 5; //每题5分
+  let errHtml = '';
+  //统计有效计分题目（排除简答）
+  let scoreTotalCount = 0;
+
+  pool.forEach((q,i)=>{
+    //简答题不计分
+    if(q.type === "essay"){
+        errHtml += `<div class="box wrong">
+        <div>${q.title}</div>
+        <div>【简答题，无自动判分】参考答案：${q.ans}</div>
+        <div class="analysis">解析：${q.analysis||'无'}</div>
+        </div>`;
+        return;
+    }
+    scoreTotalCount++;
+    let u = (userAnswer[i]||[]).sort().join('');
+    let right = q.ans;
+    if(u === right){
+      score += perScore;
+    }else{
+      errHtml += `<div class="box wrong"><div>${q.title}</div><div>你的答案：${u||'未作答'}</div><div>正确答案：${right}</div><div class="analysis">解析：${q.analysis||'无'}</div></div>`
+    }
+  })
+
+  document.getElementById('examBox').style.display='none';
+  document.getElementById('resultBox').style.display='block';
+  const fullScore = scoreTotalCount * perScore;
+  document.getElementById('scoreText').innerText = `得分：${score} / ${fullScore} ，共${pool.length}题，每题5分`;
+
+  // 得分率>=90%合格
+  const rate = fullScore>0 ? (score / fullScore) : 0;
+  const msgDom = document.getElementById("msgTip");
+  if(rate < 0.90){
+      msgDom.className = "tip-text tip-fail";
+      msgDom.innerText = "不合格，还得练";
+  }else{
+      msgDom.className = "tip-text tip-pass";
+      msgDom.innerText = "合格了，你真棒！";
+  }
+
+  document.getElementById('errorList').innerHTML = errHtml || '<p style="color:green">全部答对！太棒了！</p>';
+}
+
+function resetAll(){
+  document.getElementById('startBox').style.display='block';
+  document.getElementById('resultBox').style.display='none';
+}
+</script>
+</body>
+</html>
